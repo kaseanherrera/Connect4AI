@@ -1,11 +1,12 @@
 
 import connectK.CKPlayer;
 import connectK.BoardModel;
-
 import java.math.*;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+
+//Make this shit work again 
 //TODO make laess greedy
 //TODO diagonal ecaluation function \
 //TODO diognal evaluation function /
@@ -16,9 +17,9 @@ public class myAi extends CKPlayer {
 	int boardWidth;
 	int boardHeight;
 	int kLength;
+	long minValue = -1000000000;
+	long maxValue =  1000000000;
 
-	
-	
 	public myAi(byte player, BoardModel state) {
 		super(player, state);
 		boardHeight = state.getHeight();
@@ -29,9 +30,17 @@ public class myAi extends CKPlayer {
 
 	@Override
 	public Point getMove(BoardModel state) {
+		
 		node headNode  = generateTree(new node(state), player, 3);
-		//return new Point(i,j);
-		return minMax(headNode, player);
+		Point move = new Point();
+		//start time
+		final long startTime = System.nanoTime();
+		//move = minMax(headNode, player);
+		move = alphaBeta(headNode, player);
+		final long duration = System.nanoTime() - startTime;
+		System.out.println(duration);
+	
+		 return move;
 	}
 
 	//calls the all of the directional evaluation functions and totals the score
@@ -47,7 +56,6 @@ public class myAi extends CKPlayer {
 	public Point getMove(BoardModel state, int deadline) {
 		return getMove(state);
 	}	//get all of the possible movies 
-	
 	
 	
 	//Gets all possible moves 
@@ -137,6 +145,7 @@ public class myAi extends CKPlayer {
 		}
 		return totalScore;
 	}
+	
 	//evaluates the board Horizontally
 	private int evaluateHorizontaly(BoardModel state, byte player){
 		//total score that we are going to add too and return
@@ -257,6 +266,7 @@ public class myAi extends CKPlayer {
 		return score;
 		
 	}
+	
 	//function to evaluate a block statistic
 	public int evaluate(int numberOfOnes, int numberOfTwos, byte player){
 		int totalScore = 0;
@@ -277,6 +287,7 @@ public class myAi extends CKPlayer {
 		}
 		return totalScore;
 	}
+	
 	//min max algorithim
 	public Point minMax(node headNode, byte player){
 		Point move = new Point();
@@ -292,6 +303,55 @@ public class myAi extends CKPlayer {
 		return move;
 		
 	}
+	
+	//min max algorithim with alphabeta pruning
+	public Point alphaBeta(node headNode, byte player){
+		Point move = new Point();
+		long value = maxValue(headNode, maxValue, minValue, player);
+		
+		for(node child :  headNode.getChildren()){
+			if(child.score == value){
+				move = child.getBoard().getLastMove();
+			}
+		}
+				
+		return move;
+		
+	}
+	
+	//helper function for the for alpha beta pruning 
+	private long maxValue(node move, long alpha, long beta, byte player) {
+			if(move.getNumberOfChildren() == 0){
+				return evaluate(move.getBoard(), player);
+			}
+			
+			long value = minValue;
+			for(node nextMove: move.getChildren()){
+				value = Math.max(value, minValue(nextMove,alpha, beta, player));
+				if(value >= beta)
+					return value;
+				alpha = Math.max(alpha, value);
+			}
+			return value;
+		}
+		
+	//helper min function for alpha beta pruning 
+	private long minValue(node headNode, long alpha, long beta,  byte player){
+			//if we are at the bottom, return the evaluation of the board
+			if(headNode.getNumberOfChildren() == 0)
+				return evaluate(headNode.getBoard(), player);
+			
+			long value = maxValue;
+			//go through all of the nodes and run max
+			for(node move : headNode.getChildren()){
+				value = Math.min(value, maxValue(move,alpha, beta, player));
+				if(value <= alpha)
+					return value;
+				beta = Math.min(beta, value);
+			}
+			return value;
+		}
+		
 	//helper function for the min max
 	private long minValue(node headNode, byte player){
 		//if we are at the bottom, return the evaluation of the board
@@ -306,6 +366,7 @@ public class myAi extends CKPlayer {
 		
 		return value;
 	}
+	
 	//helper function for the min max 
 	private long maxValue(node move, byte player) {
 		if(move.getNumberOfChildren() == 0){
@@ -317,6 +378,7 @@ public class myAi extends CKPlayer {
 			value = Math.max(value, minValue(nextMove, player));
 		return value;
 	}
+	
 	//the node class 
 	public class node{
 
