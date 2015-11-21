@@ -6,11 +6,12 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 
-//Make this shit work again 
-//TODO make laess greedy
+
+//TODO make less greedy
+//TODO fic going first 
 //TODO diagonal ecaluation function \
 //TODO diognal evaluation function /
-//Alpha beta pruning 
+ 
 
 public class myAi extends CKPlayer {
 
@@ -19,7 +20,8 @@ public class myAi extends CKPlayer {
 	int kLength;
 	long minValue = -1000000000;
 	long maxValue =  1000000000;
-
+	int evaluations = 0;
+	
 	public myAi(byte player, BoardModel state) {
 		super(player, state);
 		boardHeight = state.getHeight();
@@ -33,19 +35,25 @@ public class myAi extends CKPlayer {
 		
 		node headNode  = generateTree(new node(state), player, 3);
 		Point move = new Point();
-		//start time
-		final long startTime = System.nanoTime();
-		//move = minMax(headNode, player);
-		move = alphaBeta(headNode, player);
-		final long duration = System.nanoTime() - startTime;
-		System.out.println(duration);
 	
+		/*move = minMax(headNode, player);
+		for(node child : headNode.getChildren()){
+			System.out.println("Score : " + child.getBoard().getLastMove() + "=" + child.score);
+		}*/
+		move = alphaBeta(headNode, player);
+		
+		//TEST - How many evaluations are being made between minmax and alpha beta 
+		System.out.println("Number of evaluations: " + evaluations);
+		evaluations = 0;
+		
 		 return move;
 	}
 
 	//calls the all of the directional evaluation functions and totals the score
-	public int evaluate(BoardModel state, byte player){
-		int total = evaluateHorizontaly(state, player);
+	public long evaluate(BoardModel state, byte player){
+		//count the number of times evaluate is called 
+		evaluations++;
+		long total = evaluateHorizontaly(state, player);
 		total += evaluateVertically(state, player);
 		//int total = evaluationTopRBottomL(state,player);
 		
@@ -89,7 +97,7 @@ public class myAi extends CKPlayer {
 		return possibleMoves;
 	}
 	//Evaluates the board vertically 
-	public int evaluateVertically(BoardModel state, byte player){
+	public long evaluateVertically(BoardModel state, byte player){
 		//total score that we are going to add too and return
 		int totalScore = 0;
 		//edge to stop counting and stay inbounds of the board
@@ -129,7 +137,16 @@ public class myAi extends CKPlayer {
 						long  score = 0;
 						int count = Math.abs(numberOfOnes - numberOfTwos);
 						
-						score = (count == state.kLength) ? 1000000000 : (int)Math.pow(10, count);
+						
+						//if there is a win, return max total score
+						if(count == state.kLength){
+							if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
+								return maxValue;
+							
+							else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
+								return minValue;
+						}
+						score = (int)Math.pow(10, count);
 						
 						if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos){
 							totalScore += score;
@@ -147,7 +164,7 @@ public class myAi extends CKPlayer {
 	}
 	
 	//evaluates the board Horizontally
-	private int evaluateHorizontaly(BoardModel state, byte player){
+	private long evaluateHorizontaly(BoardModel state, byte player){
 		//total score that we are going to add too and return
 		int totalScore = 0;
 		//edge to stop counting and stay inbounds of the board
@@ -187,7 +204,15 @@ public class myAi extends CKPlayer {
 						long  score = 0;
 						int count = Math.abs(numberOfOnes - numberOfTwos);
 						
-						score = (count == state.kLength) ? 1000000000 : (int)Math.pow(10, count);
+						//if there is a win, return max total score
+						if(count == state.kLength){
+							if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
+								return maxValue;
+							
+							else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
+								return minValue;
+						}
+						score = (int)Math.pow(10, count);
 						
 						if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
 							totalScore += score;
@@ -291,7 +316,7 @@ public class myAi extends CKPlayer {
 	//min max algorithim
 	public Point minMax(node headNode, byte player){
 		Point move = new Point();
-		long max = -1000000000;
+		long max = minValue;
 		for(node child :  headNode.getChildren()){
 			long minVal = minValue(child, player);
 			if(minVal >  max){
@@ -308,10 +333,15 @@ public class myAi extends CKPlayer {
 	public Point alphaBeta(node headNode, byte player){
 		Point move = new Point();
 		long value = maxValue(headNode, maxValue, minValue, player);
-		
+		System.out.println("Value : " + value);
+		System.out.println("");
+		int count = 0;
 		for(node child :  headNode.getChildren()){
-			if(child.score == value){
+			count++;
+			System.out.println("Child " + child.getBoard().getLastMove() + " Score : " + child.score);
+			if(child.score > value){
 				move = child.getBoard().getLastMove();
+				value = child.score;
 			}
 		}
 				
@@ -358,7 +388,7 @@ public class myAi extends CKPlayer {
 		if(headNode.getNumberOfChildren() == 0)
 			return evaluate(headNode.getBoard(), player);
 		
-		long value = 1000000000;
+		long value = maxValue;
 		
 		//go through all of the nodes and run max
 		for(node move : headNode.getChildren())
@@ -373,7 +403,7 @@ public class myAi extends CKPlayer {
 			return evaluate(move.getBoard(), player);
 		}
 		
-		long value = -1000000000;
+		long value = minValue;
 		for(node nextMove: move.getChildren())
 			value = Math.max(value, minValue(nextMove, player));
 		return value;
@@ -384,7 +414,7 @@ public class myAi extends CKPlayer {
 
 		private  ArrayList<node> children;
 		private BoardModel currentState;
-		public int score;
+		public long score;
 		
 		public node(BoardModel state){
 			currentState = state;
