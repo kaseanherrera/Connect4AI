@@ -39,8 +39,8 @@ public class myAi extends CKPlayer {
 		/*move = minMax(headNode, player);
 		for(node child : headNode.getChildren()){
 			System.out.println("Score : " + child.getBoard().getLastMove() + "=" + child.score);
-		}*/
-		move = alphaBeta(headNode, player);
+		} 
+		*/move = alphaBeta(headNode, player);
 		
 		//TEST - How many evaluations are being made between minmax and alpha beta 
 		System.out.println("Number of evaluations: " + evaluations);
@@ -64,7 +64,6 @@ public class myAi extends CKPlayer {
 	public Point getMove(BoardModel state, int deadline) {
 		return getMove(state);
 	}	//get all of the possible movies 
-	
 	
 	//Gets all possible moves 
 	public ArrayList<Point> getPossibleMoves(BoardModel state){
@@ -96,6 +95,7 @@ public class myAi extends CKPlayer {
 		
 		return possibleMoves;
 	}
+	
 	//Evaluates the board vertically 
 	public long evaluateVertically(BoardModel state, byte player){
 		//total score that we are going to add too and return
@@ -226,190 +226,113 @@ public class myAi extends CKPlayer {
 		}
 		return totalScore;
 	}
-	
-	//Evaluate board Diagonally this way ----> \
-	public int evaluationTopRBottomL(BoardModel state, byte player){
-		//total score 
-		int totalScore = 0;
-		ArrayList<Point> block = new ArrayList<Point>();
-		
-		//we want to go from the length to the end
-		for(int x = kLength-1; x < boardWidth; x++){
-			//go up and left until there x is grater that klenth and y + klength is less than height 
-			int currentx = x;
-			int currenty = 0;
-			while(currentx > kLength && (currenty + kLength < boardHeight)){
-				//create a block and evaluate it 
-				for(int blockNumber = 0 ; blockNumber < kLength ; blockNumber++){
-					Point point  = new Point(currentx - blockNumber, currenty + blockNumber);
-					block.add(blockNumber, point );
+
+
+/*  ####
+ *  MINMAX Code below
+ *  ###### 
+ */
+		//MIN MAX 
+		public Point minMax(node headNode, byte player){
+			Point move = new Point();
+			long max = minValue;
+			for(node child :  headNode.getChildren()){
+				long minVal = minValue(child, player);
+				System.out.println("Min Val" + child.getBoard().getLastMove() + " : " + minVal);
+				if(minVal >  max){
+					max = minVal;
+					move = child.getBoard().getLastMove();
 				}
-				
-				totalScore = evaluateBlock(block, state, player);
-				currentx--;
-				currenty++;
-			}	
+			}
+					
+			return move;
 		}
 		
-		return totalScore;
-	}
-	
-	//function evaluate Block
-	public int evaluateBlock(ArrayList<Point> block, BoardModel state, byte player){
-		int score = 0;
-		int numberOfOnes = 0;
-		int numberOfTwos = 0;
-		boolean evaluate = true;
-		
-		for(int pointIndex = 0 ; pointIndex < block.size() ; pointIndex++){
-			int x = block.get(pointIndex).x;
-			int y = block.get(pointIndex).y;
-			
-			if(state.getSpace(x, y) == 0)
-				continue;
-				
-			if(state.getSpace(x, y) == 1){
-				if(numberOfTwos > 1){
-					evaluate = false;
-					break;
-				}
-				numberOfOnes++;
-			}
-				
-			if(state.getSpace(x, y) == 2){
-				if(numberOfOnes > 0){
-					evaluate = false;
-					break;
-				}
-				numberOfTwos++;
-			}
-		}
-		
-		if(evaluate)
-			score = evaluate(numberOfOnes, numberOfTwos, player);
-	
-		return score;
-		
-	}
-	
-	//function to evaluate a block statistic
-	public int evaluate(int numberOfOnes, int numberOfTwos, byte player){
-		int totalScore = 0;
-		if(numberOfOnes == 0 && numberOfTwos != 0 || numberOfTwos == 0 && numberOfOnes != 0){
-			//if its a n in a row, max points 
-			long  score = 0;
-			int count = Math.abs(numberOfOnes - numberOfTwos);
-			
-			score = (count == kLength) ? 1000000000 : (int)Math.pow(10, count);
-			
-			if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
-				totalScore += score;
-			
-			else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos){
-				totalScore -= score;
-				System.out.println(score * -1);
-			}
-		}
-		return totalScore;
-	}
-	
-	//min max algorithim
-	public Point minMax(node headNode, byte player){
-		Point move = new Point();
-		long max = minValue;
-		for(node child :  headNode.getChildren()){
-			long minVal = minValue(child, player);
-			if(minVal >  max){
-				max = minVal;
-				move = child.getBoard().getLastMove();
-			}
-		}
-				
-		return move;
-		
-	}
-	
-	//min max algorithim with alphabeta pruning
-	public Point alphaBeta(node headNode, byte player){
-		Point move = new Point();
-		long value = maxValue(headNode, maxValue, minValue, player);
-		System.out.println("Value : " + value);
-		System.out.println("");
-		int count = 0;
-		for(node child :  headNode.getChildren()){
-			count++;
-			System.out.println("Child " + child.getBoard().getLastMove() + " Score : " + child.score);
-			if(child.score > value){
-				move = child.getBoard().getLastMove();
-				value = child.score;
-			}
-		}
-				
-		return move;
-		
-	}
-	
-	//helper function for the for alpha beta pruning 
-	private long maxValue(node move, long alpha, long beta, byte player) {
-			if(move.getNumberOfChildren() == 0){
-				return evaluate(move.getBoard(), player);
-			}
-			
-			long value = minValue;
-			for(node nextMove: move.getChildren()){
-				value = Math.max(value, minValue(nextMove,alpha, beta, player));
-				if(value >= beta)
-					return value;
-				alpha = Math.max(alpha, value);
-			}
-			return value;
-		}
-		
-	//helper min function for alpha beta pruning 
-	private long minValue(node headNode, long alpha, long beta,  byte player){
+		//MINMAX Min function 
+		private long minValue(node headNode, byte player){
 			//if we are at the bottom, return the evaluation of the board
 			if(headNode.getNumberOfChildren() == 0)
 				return evaluate(headNode.getBoard(), player);
 			
 			long value = maxValue;
+			
 			//go through all of the nodes and run max
+			for(node move : headNode.getChildren())
+				value = Math.min(value, maxValue(move, player));
+			
+			return value;
+		}
+		
+		
+		//MINMAX Max function 
+		private long maxValue(node move, byte player) {
+			if(move.getNumberOfChildren() == 0){
+				return evaluate(move.getBoard(), player);
+			}
+			
+			long value = minValue;
+			for(node nextMove: move.getChildren())
+				value = Math.max(value, minValue(nextMove, player));
+			return value;
+		}
+
+/* ####
+ * Alpha Beta Code below 
+ * ####
+ */
+		//min max algorithim with alphabeta pruning
+		public Point alphaBeta(node headNode, byte player){
+			Point move = new Point();
+			
+			long value = maxValue(headNode, maxValue, minValue, player); 	System.out.println("Value : " + value);
+	
+			for(node child :  headNode.getChildren()){		System.out.println("Child " + child.getBoard().getLastMove() + " Score : " + minValue(child,maxValue, minValue, player));
+				
+				if(child.score == value)	move = child.getBoard().getLastMove();
+				
+			}
+			return move;
+		}
+		
+		//helper function for the for alpha beta pruning 
+		private long maxValue(node move, long alpha, long beta, byte player) {
+	
+			if(move.getNumberOfChildren() == 0 ) return evaluate(move.getBoard(), player);
+				
+			long value = minValue;
+			
+			for(node nextMove: move.getChildren()){
+				value = Math.max(value, minValue(nextMove,alpha, beta, player));
+				
+				if(value >= beta) return value;
+				
+				alpha = Math.max(alpha, value);
+			}
+			return value;
+		}
+			
+		//helper min function for alpha beta pruning 
+		private long minValue(node headNode, long alpha, long beta,  byte player){
+			//if we are at the bottom, return the evaluation of the board
+			if(headNode.getNumberOfChildren() == 0 ) return evaluate(headNode.getBoard(), player);
+				
+			long value = maxValue;
+				
 			for(node move : headNode.getChildren()){
+					
 				value = Math.min(value, maxValue(move,alpha, beta, player));
-				if(value <= alpha)
-					return value;
+					
+				if(value <= alpha) return value;
+					
 				beta = Math.min(beta, value);
 			}
 			return value;
 		}
 		
-	//helper function for the min max
-	private long minValue(node headNode, byte player){
-		//if we are at the bottom, return the evaluation of the board
-		if(headNode.getNumberOfChildren() == 0)
-			return evaluate(headNode.getBoard(), player);
-		
-		long value = maxValue;
-		
-		//go through all of the nodes and run max
-		for(node move : headNode.getChildren())
-			value = Math.min(value, maxValue(move, player));
-		
-		return value;
-	}
-	
-	//helper function for the min max 
-	private long maxValue(node move, byte player) {
-		if(move.getNumberOfChildren() == 0){
-			return evaluate(move.getBoard(), player);
-		}
-		
-		long value = minValue;
-		for(node nextMove: move.getChildren())
-			value = Math.max(value, minValue(nextMove, player));
-		return value;
-	}
-	
-	//the node class 
+/* ####
+ * Node Data Structure 
+ * ####
+ */
 	public class node{
 
 		private  ArrayList<node> children;
@@ -471,3 +394,94 @@ public class myAi extends CKPlayer {
 		return head;
 	}
 }
+
+
+/*//Evaluate board Diagonally this way ----> \
+public int evaluationTopRBottomL(BoardModel state, byte player){
+	//total score 
+	int totalScore = 0;
+	ArrayList<Point> block = new ArrayList<Point>();
+	
+	//we want to go from the length to the end
+	for(int x = kLength-1; x < boardWidth; x++){
+		//go up and left until there x is grater that klenth and y + klength is less than height 
+		int currentx = x;
+		int currenty = 0;
+		while(currentx > kLength && (currenty + kLength < boardHeight)){
+			//create a block and evaluate it 
+			for(int blockNumber = 0 ; blockNumber < kLength ; blockNumber++){
+				Point point  = new Point(currentx - blockNumber, currenty + blockNumber);
+				block.add(blockNumber, point );
+			}
+			
+			totalScore = evaluateBlock(block, state, player);
+			currentx--;
+			currenty++;
+		}	
+	}
+	
+	return totalScore;
+}
+*/
+
+
+
+/*	//function evaluate Block
+	public int evaluateBlock(ArrayList<Point> block, BoardModel state, byte player){
+		int score = 0;
+		int numberOfOnes = 0;
+		int numberOfTwos = 0;
+		boolean evaluate = true;
+		
+		for(int pointIndex = 0 ; pointIndex < block.size() ; pointIndex++){
+			int x = block.get(pointIndex).x;
+			int y = block.get(pointIndex).y;
+			
+			if(state.getSpace(x, y) == 0)
+				continue;
+				
+			if(state.getSpace(x, y) == 1){
+				if(numberOfTwos > 1){
+					evaluate = false;
+					break;
+				}
+				numberOfOnes++;
+			}
+				
+			if(state.getSpace(x, y) == 2){
+				if(numberOfOnes > 0){
+					evaluate = false;
+					break;
+				}
+				numberOfTwos++;
+			}
+		}
+		
+		if(evaluate)
+			score = evaluate(numberOfOnes, numberOfTwos, player);
+	
+		return score;
+		
+	}
+	
+	//function to evaluate a block statistic
+	public int evaluate(int numberOfOnes, int numberOfTwos, byte player){
+		int totalScore = 0;
+		if(numberOfOnes == 0 && numberOfTwos != 0 || numberOfTwos == 0 && numberOfOnes != 0){
+			//if its a n in a row, max points 
+			long  score = 0;
+			int count = Math.abs(numberOfOnes - numberOfTwos);
+			
+			score = (count == kLength) ? 1000000000 : (int)Math.pow(10, count);
+			
+			if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
+				totalScore += score;
+			
+			else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos){
+				totalScore -= score;
+				System.out.println(score * -1);
+			}
+		}
+		return totalScore;
+	}
+	*/
