@@ -56,6 +56,7 @@ public class myAi extends CKPlayer {
 		//count the number of times evaluate is called 
 		long total = evaluateHorizontaly(state, player);
 		total += evaluateVertically(state, player);
+		//int total = evaluationTopRBottomL(state,player);
 		
 		return total;
 	}
@@ -485,64 +486,3 @@ public int evaluationTopRBottomL(BoardModel state, byte player){
 		return totalScore;
 	}
 	*/
-
-
-
-
-/*	//generates the game tree
-public Node getGameTree(Node head, int level){
-	//base case return
-	Byte winner = head.getBoard().winner();
-	//continure unless we are at the lowest point in the tree or there is a winner 
-	if(level == 0 || winner != -1){
-		return head;
-	}
-	//get all of the possible moves
-	ArrayList<Point> possibleMoves = getPossibleMoves(head.getBoard());
-	//get the next player 
-	Byte currentPlayer = Player(head.getBoard());
-	//place a token in all possible movies 
-	for(int i = 0; i < possibleMoves.size() ; i++){
-		//clone the board and place the piece 
-		BoardModel clonedState = head.getBoard().clone().placePiece(possibleMoves.get(i), currentPlayer);
-		//create a node
-		Node childNode = new Node(clonedState);
-		//add to children
-		head.addChild(childNode);
-		//keep going with the tree generation 
-		getGameTree(childNode, level-1);
-	}
-
-	return head;
-}
-*/
-/*
-public class valueMove{
-	private long value;
-	private Point point;
-	
-	valueMove(long val, Point p){
-		point = new Point(p);
-		value = val;
-	}
-	
-	public void setMove(Point p){
-		point = p;
-	}
-
-	public Point getMove() {
-		return point;
-	}
-
-	public void setValue(long value2) {
-		value = value2;
-		
-	}
-
-	public long getValue() {
-	//return the value
-		return value;
-	}
-	
-}
-*/

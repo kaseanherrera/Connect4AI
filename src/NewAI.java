@@ -7,6 +7,10 @@ import java.util.ArrayList;
 
 
 
+/*implement move selection*/
+/*fix going first error*/
+/*figure out if it is actaully going as deep as it is is assigned*/
+/*evaluation function*/
 
 public class NewAI extends CKPlayer {
 	
@@ -16,14 +20,15 @@ public class NewAI extends CKPlayer {
 	private int kLength;
 	private static long minScore = -1000000000;
 	private static long maxScore = 1000000000;
+	int evaluations = 0;
 	
 	public NewAI(byte player, BoardModel state) {
 		//Constructor 
 		super(player, state);
 		boardHeight = state.getHeight();
-		boardWidth = state.getHeight();
+		boardWidth = state.getWidth();
 		kLength = state.getkLength();
-		teamName = "Solo";
+		teamName = "SoloKasean";
 	}
 	
 	@Override
@@ -33,18 +38,22 @@ public class NewAI extends CKPlayer {
 
 	@Override
 	public Point getMove(BoardModel state) {
-		return AlphaBetaSearch(new Node(state, 1));
+		return AlphaBetaSearch(new Node(state, 8));
 	}
 	
-		
 	private Point AlphaBetaSearch(Node state){
 		
 		long value = maxValue(state, minScore, maxScore);
 		System.out.println("Value = " + value);
-		
+		System.out.println(evaluations);
+		evaluations = 0; 
 		for(Node child : state.getChildren()){
-			System.out.println("Child value " + child.level);
+		System.out.println(child.value);
+			if(value == child.value){
+				return child.getBoard().getLastMove();
+			}
 		}
+	
 		return null;
 		
 	}
@@ -57,9 +66,9 @@ public class NewAI extends CKPlayer {
 		//evaluate if at the lowest point in the tree or there is a winner 
 		if(state.getLevel() == 0 || winner != -1) return utility(state);
 		//start with the value at minimum 
-		state.value = minScore;
+		state.setValue(minScore);
 		for(Point move : getPossibleMoves(state.getBoard())){
-			state.value = Math.max(state.value, minValue(Result(state, move), alpha, beta));
+			state.setValue(Math.max(state.value, minValue(Result(state, move), alpha, beta)));
 			if(state.value >= beta){
 				return state.value;
 			}
@@ -70,16 +79,15 @@ public class NewAI extends CKPlayer {
 		return state.value;
 	}
 	
-
 	private long minValue (Node state, long alpha, long beta) {
 		//base case return
 		Byte winner = state.getBoard().winner();
 		//evaluate if at the lowest point in the tree or there is a winner 
 		if(state.getLevel() == 0 || winner != -1) return utility(state);
 		//set value to max score 
-		state.value = maxScore;
+		state.setValue(maxScore);
 		for(Point action : getPossibleMoves(state.getBoard())){
-			state.value = Math.min(state.value, maxValue(Result(state, action), alpha, beta));
+			state.setValue(Math.min(state.value, maxValue(Result(state, action), alpha, beta)));
 			if(state.value <= alpha) return state.value;
 			beta = Math.min( beta, state.value);
 		}
@@ -101,7 +109,10 @@ public class NewAI extends CKPlayer {
 	private long utility(Node state) {
 		//System.out.println("Inside Utility");
 		// TODO Auto-generated method stub
+		evaluations++;
 		long total = evaluateHorizontaly(state.getBoard(), player);
+		total += evaluateVertically(state.getBoard(), player);
+		state.setValue(total);
 		//total += evaluateVertically(state.getBoard(), player);
 		//System.out.println("Leaving Utility");
 		return total;
@@ -174,14 +185,85 @@ public class NewAI extends CKPlayer {
 		return totalScore;
 	}
 
+	public long evaluateVertically(BoardModel state, byte player){
+		//total score that we are going to add too and return
+		int totalScore = 0;
+		//edge to stop counting and stay inbounds of the board
+		int yStop = state.height - state.kLength + 1;
+		
+		//loop though all of the vertical levels
+		for(int x = 0; x < state.width ; x++){
+			//loop in the y direction till the limit
+			for(int y = 0; y < yStop; y++){
+				//count the number of 1, and 2s in the block of connectn
+				int numberOfOnes = 0;
+				int numberOfTwos = 0;
+				boolean evaluate = true;
+				for(int slot = y; slot < (y + state.kLength) ; slot++){
+					//dont count empty spaces
+					if(state.getSpace(x, slot) == 0)
+						continue;
+					if(state.getSpace(x,slot) == 1){
+						if(numberOfTwos > 1){
+							evaluate = false;
+							break;
+						}
+						numberOfOnes++;
+					}
+					if(state.getSpace(x,slot) == 2){
+						if(numberOfOnes > 0){
+							evaluate = false;
+							break;
+						}
+						numberOfTwos++;
+					}
+				}
+				
+				if(evaluate){
+					if(numberOfOnes == 0 && numberOfTwos != 0 || numberOfTwos == 0 && numberOfOnes != 0){
+						//if its a n in a row, max points 
+						long  score = 0;
+						int count = Math.abs(numberOfOnes - numberOfTwos);
+						
+						
+						//if there is a win, return max total score
+						if(count == state.kLength){
+							if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
+								return maxScore;
+							
+							else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
+								return minScore;
+						}
+						score = (int)Math.pow(10, count);
+						
+						if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos){
+							totalScore += score;
+						}
+						
+						else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
+							totalScore -= score;
+						
+				
+					}
+				}
+			}
+		}
+		return totalScore;
+	}
+	
+	//Get all possible moves 
 	private ArrayList<Point> getPossibleMoves(BoardModel state){
-		//System.out.println("getPossibleMoves");
-		//Gets all possible moves 
+		
+		ArrayList<Integer> searchIndex = getMoveOrder();
+		
+		//get the middle 
 		ArrayList<Point> possibleMoves = new ArrayList<Point>();
 		if(state.hasMovesLeft()){
 			if(state.gravityEnabled()){
 				//find all of the highest spaces that are empty
-				for(int x = 0; x < state.width ; x++){
+				int x;
+				for(int i = 0; i < state.width ; i++){
+					x = searchIndex.get(i);
 					for(int y = 0; y < state.height ; y++){
 						if(state.getSpace(x,y)  != 1 && state.getSpace(x,y)  != 2){
 							 possibleMoves.add(new Point(x,y));
@@ -191,7 +273,9 @@ public class NewAI extends CKPlayer {
 				}
 			}else{
 				//find all of the highest spaces that are empty
-				for(int x = 0; x < state.width ; x++){
+				int x;
+				for(int i = 0; i < state.width ; i++){
+					x = searchIndex.get(i);
 					for(int y = 0; y < state.height ; y++){
 						if(state.getSpace(x,y)  != 1 && state.getSpace(x,y)  != 2){
 							
@@ -205,7 +289,43 @@ public class NewAI extends CKPlayer {
 		
 		return possibleMoves;
 	}
+
+	//returns a list with the move ordering
+	private ArrayList<Integer> getMoveOrder(){
+		ArrayList<Integer> moveOrder = new ArrayList<Integer>();
+		
+		//if even 
+		if(boardWidth%2 == 0){
+			int start = (boardWidth+1)/2;
+			moveOrder.add(start);
+			int next = -1;
+			while(start != 0){
+				start+=next;
+				moveOrder.add(start);
+				next = staggerIncrement(next);
+			}
+		}else{ 
+			int start = (boardWidth)/2;
+			moveOrder.add(start);
+			int next = -1;
+			while(start != boardWidth-1){
+				start+=next;
+				moveOrder.add(start);
+				next = staggerIncrement(next);
+			}
+		}
+		
 	
+		return moveOrder;
+
+	}
+	
+	private int staggerIncrement(int i){
+		int newI = Math.abs(i) + 1;
+		if(newI % 2 == 0)
+			return newI;
+		return newI * -1;
+	}
 	private Byte Player(BoardModel clonedState) {
 		//System.out.println("Inside Player");
 		Byte nextPlayer;
@@ -220,14 +340,21 @@ public class NewAI extends CKPlayer {
 		return nextPlayer;
 	}
 
-	public class Node{
+	private class Node{
 		//represents a node in the game
 		
 		private  ArrayList<Node> children;
 		private BoardModel currentState;
-		public long value;
+		private long value;
 		private int level;
 		
+		public void setValue(long val){
+			value = val;
+		}
+		
+		public long getValue(){
+			return value;
+		}
 		
 		public Node(BoardModel state, int levelNumber){
 			//constructor tells what level we are on 
@@ -270,7 +397,6 @@ public class NewAI extends CKPlayer {
 		
 	}
 
-	
 }
 
 
