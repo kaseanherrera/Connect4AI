@@ -6,8 +6,9 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 
-
+//TODO minvalue is only return the value from the first cell, this is a big issues 
 //TODO make less greedy
+
 //TODO fic going first 
 //TODO diagonal ecaluation function \
 //TODO diognal evaluation function /
@@ -40,11 +41,12 @@ public class myAi extends CKPlayer {
 		for(node child : headNode.getChildren()){
 			System.out.println("Score : " + child.getBoard().getLastMove() + "=" + child.score);
 		} 
-		*/move = alphaBeta(headNode, player);
+		*/
+		move = alphaBeta(headNode, player);
 		
 		//TEST - How many evaluations are being made between minmax and alpha beta 
-		System.out.println("Number of evaluations: " + evaluations);
-		evaluations = 0;
+		//System.out.println("Number of evaluations: " + evaluations);
+		//evaluations = 0;
 		
 		 return move;
 	}
@@ -52,10 +54,8 @@ public class myAi extends CKPlayer {
 	//calls the all of the directional evaluation functions and totals the score
 	public long evaluate(BoardModel state, byte player){
 		//count the number of times evaluate is called 
-		evaluations++;
 		long total = evaluateHorizontaly(state, player);
 		total += evaluateVertically(state, player);
-		//int total = evaluationTopRBottomL(state,player);
 		
 		return total;
 	}
@@ -63,7 +63,7 @@ public class myAi extends CKPlayer {
 	@Override
 	public Point getMove(BoardModel state, int deadline) {
 		return getMove(state);
-	}	//get all of the possible movies 
+	}	
 	
 	//Gets all possible moves 
 	public ArrayList<Point> getPossibleMoves(BoardModel state){
@@ -231,7 +231,7 @@ public class myAi extends CKPlayer {
 /*  ####
  *  MINMAX Code below
  *  ###### 
- */
+ 
 		//MIN MAX 
 		public Point minMax(node headNode, byte player){
 			Point move = new Point();
@@ -276,7 +276,7 @@ public class myAi extends CKPlayer {
 			return value;
 		}
 
-/* ####
+* ####
  * Alpha Beta Code below 
  * ####
  */
@@ -284,11 +284,11 @@ public class myAi extends CKPlayer {
 		public Point alphaBeta(node headNode, byte player){
 			Point move = new Point();
 			
-			long value = maxValue(headNode, maxValue, minValue, player); 	System.out.println("Value : " + value);
+			long value = maxValue(headNode, maxValue, minValue, player); 	System.out.println("AlphaBeta: value we are looking for " + value);
 	
 			for(node child :  headNode.getChildren()){		System.out.println("Child " + child.getBoard().getLastMove() + " Score : " + minValue(child,maxValue, minValue, player));
 				
-				if(child.score == value)	move = child.getBoard().getLastMove();
+				if( minValue(child,maxValue, minValue, player) == value)	move = child.getBoard().getLastMove();
 				
 			}
 			return move;
@@ -302,7 +302,7 @@ public class myAi extends CKPlayer {
 			long value = minValue;
 			
 			for(node nextMove: move.getChildren()){
-				value = Math.max(value, minValue(nextMove,alpha, beta, player));
+				value = Math.max(value, minValue(nextMove,alpha, beta, player)); 
 				
 				if(value >= beta) return value;
 				
@@ -320,7 +320,7 @@ public class myAi extends CKPlayer {
 				
 			for(node move : headNode.getChildren()){
 					
-				value = Math.min(value, maxValue(move,alpha, beta, player));
+				value = Math.min(value, maxValue(move,alpha, beta, player));	
 					
 				if(value <= alpha) return value;
 					
@@ -485,3 +485,64 @@ public int evaluationTopRBottomL(BoardModel state, byte player){
 		return totalScore;
 	}
 	*/
+
+
+
+
+/*	//generates the game tree
+public Node getGameTree(Node head, int level){
+	//base case return
+	Byte winner = head.getBoard().winner();
+	//continure unless we are at the lowest point in the tree or there is a winner 
+	if(level == 0 || winner != -1){
+		return head;
+	}
+	//get all of the possible moves
+	ArrayList<Point> possibleMoves = getPossibleMoves(head.getBoard());
+	//get the next player 
+	Byte currentPlayer = Player(head.getBoard());
+	//place a token in all possible movies 
+	for(int i = 0; i < possibleMoves.size() ; i++){
+		//clone the board and place the piece 
+		BoardModel clonedState = head.getBoard().clone().placePiece(possibleMoves.get(i), currentPlayer);
+		//create a node
+		Node childNode = new Node(clonedState);
+		//add to children
+		head.addChild(childNode);
+		//keep going with the tree generation 
+		getGameTree(childNode, level-1);
+	}
+
+	return head;
+}
+*/
+/*
+public class valueMove{
+	private long value;
+	private Point point;
+	
+	valueMove(long val, Point p){
+		point = new Point(p);
+		value = val;
+	}
+	
+	public void setMove(Point p){
+		point = p;
+	}
+
+	public Point getMove() {
+		return point;
+	}
+
+	public void setValue(long value2) {
+		value = value2;
+		
+	}
+
+	public long getValue() {
+	//return the value
+		return value;
+	}
+	
+}
+*/
