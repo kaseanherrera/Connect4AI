@@ -6,11 +6,6 @@ import java.awt.Point;
 import java.util.ArrayList;
 
 
-
-
-
-/*test limits of eval functions*/
-
 public class NewAI extends CKPlayer {
 	
 	//Board information
@@ -42,7 +37,6 @@ public class NewAI extends CKPlayer {
 	public Point getMove(BoardModel state) {
 		//the first move has not been made
 		lastMove = state.getLastMove();
-		
 		if(lastMove == null){
 			//place peace in the middle of board 
 			lastMove = new Point(boardWidth/2,0);
@@ -59,18 +53,13 @@ public class NewAI extends CKPlayer {
 	}
 	
 	private Point AlphaBetaSearch(Node state){
-		
 		long value = maxValue(state, minScore, maxScore);
-
 		for(Node child : state.getChildren()){
-
 			if(value == child.value){
 				return child.getBoard().getLastMove();
 			}
 		}
-	
 		return null;
-		
 	}
 	
 	private long maxValue(Node state, long alpha, long beta) {
@@ -162,26 +151,18 @@ public class NewAI extends CKPlayer {
 			for(int y = 0; y <= boardHeight - kLength; y++){
 				//count the number of 1, and 2s in the block of 
 				int numberOfOnes = 0;
-				int numberOfTwos = 0;
-				int currentx = x;
-				int currenty = y;				
+				int numberOfTwos = 0;				
 				//loop though a block the size of k 
 				for(int blockNumber = 0; blockNumber < kLength ; blockNumber++){
-					byte tile = state.getSpace(currentx,currenty+blockNumber);
-					int ny = currenty+blockNumber;
-					//System.out.println(x + "," + ny);
+					byte tile = state.getSpace(x,y+blockNumber);
 					if(tile == 1)
 						numberOfOnes++;
 					if(tile == 2)
 						numberOfTwos++;
 				}
-				//System.out.println("------------");
-			
 				totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
 			}
-			//System.out.println("**************");
 		}
-		//System.out.println("5555555555555555555555555555");
 		return totalScore;
 	}
 	//evaluates a block 
@@ -197,25 +178,17 @@ public class NewAI extends CKPlayer {
 				int currenty = y;
 				int numberOfOnes = 0;
 				int numberOfTwos = 0;
-				
 				//loop though a block the size of k 
 				for(int blockNumber = 0; blockNumber < kLength ; blockNumber++){
 					byte tile = state.getSpace(currentx+blockNumber, currenty+blockNumber);
-				//	int i = currentx+blockNumber;
-					//int j = currenty + blockNumber;
-					//System.out.println(i + "," +j);
 					if(tile == 1)
 						numberOfOnes++;
 					if(tile == 2)
 						numberOfTwos++;
 				}
-				//System.out.println("----------------");
-				//add to total and shit up and over 
 				total += evaluateBlock(numberOfOnes, numberOfTwos);
 			}
-			//System.out.println("****************");
 		}
-		//System.out.println("66666666666666666666");
 		return total;
 	}
 	
@@ -228,24 +201,18 @@ public class NewAI extends CKPlayer {
 				int currentx = x;
 				int currenty = y;
 				int numberOfOnes = 0;
-				int numberOfTwos = 0;
-			
+				int numberOfTwos = 0;	
 				for(int blockNumber = 0; blockNumber < kLength; blockNumber++){
 					//get the tile at the block
 					byte tile = state.getSpace(currentx-blockNumber, currenty + blockNumber);
-					//int i = currentx-blockNumber;
-					//int j = currenty + blockNumber;
-					//System.out.println(i + "," +j);
 					if(tile == 1)
 						numberOfOnes++;
 					if(tile == 2)
 						numberOfTwos++;
 				}
-				//System.out.println("---------------------");
 				//add score to total score 
 				totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
 			}
-			//System.out.println("****************");
 		}
 		return totalScore;
 	}
@@ -256,7 +223,6 @@ public class NewAI extends CKPlayer {
 		//only evaluate if the block is empty 
 		if(numberOfOnes == 0 && numberOfTwos !=  0 || numberOfOnes != 0 && numberOfTwos == 0){
 			int count = Math.abs(numberOfOnes - numberOfTwos);
-				
 			//if there is a win, return max total score
 			if(count == kLength){
 				if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
@@ -264,26 +230,20 @@ public class NewAI extends CKPlayer {
 					
 				else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
 					return minScore;
-			}
-			
-			int score = (int)Math.pow(10, count);
-				
+			}	
+			int score = (int)Math.pow(10, count);	
 			if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
 				totalScore += score;
-				
 			else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
 				totalScore -= score;
 		}
-		
 		return totalScore;
 	}
 	//Get all possible moves 
 	
 	
 	private ArrayList<Point> getPossibleMoves(BoardModel state){
-		
 		ArrayList<Integer> searchIndex = getMoveOrder();
-		
 		//get the middle 
 		ArrayList<Point> possibleMoves = new ArrayList<Point>();
 		if(state.hasMovesLeft()){
@@ -299,7 +259,9 @@ public class NewAI extends CKPlayer {
 						}
 					}
 				}
-			}else{
+			}
+			else
+			{
 				//find all of the highest spaces that are empty
 				int x;
 				for(int i = 0; i < state.width ; i++){
@@ -311,10 +273,8 @@ public class NewAI extends CKPlayer {
 						}
 					}
 				}
-				
 			}
 		}
-		
 		return possibleMoves;
 	}
 	//returns a list with the move ordering
