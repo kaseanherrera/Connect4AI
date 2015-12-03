@@ -7,10 +7,10 @@ import java.util.ArrayList;
 
 
 
-/*implement move selection*/
-/*fix going first error*/
-/*figure out if it is actaully going as deep as it is is assigned*/
-/*evaluation function*/
+
+
+/*evaluation function
+ */
 
 public class NewAI extends CKPlayer {
 	
@@ -20,7 +20,9 @@ public class NewAI extends CKPlayer {
 	private int kLength;
 	private static long minScore = -1000000000;
 	private static long maxScore = 1000000000;
-	int evaluations = 0;
+	private int evaluations = 0;
+	private Point lastMove;
+	private boolean gravityOn;
 	
 	public NewAI(byte player, BoardModel state) {
 		//Constructor 
@@ -28,6 +30,7 @@ public class NewAI extends CKPlayer {
 		boardHeight = state.getHeight();
 		boardWidth = state.getWidth();
 		kLength = state.getkLength();
+		gravityOn = state.gravity;
 		teamName = "SoloKasean";
 	}
 	
@@ -38,17 +41,28 @@ public class NewAI extends CKPlayer {
 
 	@Override
 	public Point getMove(BoardModel state) {
-		return AlphaBetaSearch(new Node(state, 8));
+		//the first move has not been made
+		lastMove = state.getLastMove();
+		
+		if(lastMove == null){
+			//place peace in the middle of board 
+			lastMove = new Point(boardWidth/2,0);
+			return lastMove;
+		}
+		
+		if(gravityOn){
+			return AlphaBetaSearch(new Node(state, 7));
+		}
+		
+		return AlphaBetaSearch(new Node(state, 2));
 	}
 	
 	private Point AlphaBetaSearch(Node state){
 		
 		long value = maxValue(state, minScore, maxScore);
-		System.out.println("Value = " + value);
-		System.out.println(evaluations);
-		evaluations = 0; 
+
 		for(Node child : state.getChildren()){
-		System.out.println(child.value);
+
 			if(value == child.value){
 				return child.getBoard().getLastMove();
 			}
@@ -59,9 +73,6 @@ public class NewAI extends CKPlayer {
 	}
 	
 	private long maxValue(Node state, long alpha, long beta) {
-		//System.out.println("Inside Max");
-		//base case return
-
 		Byte winner = state.getBoard().winner();
 		//evaluate if at the lowest point in the tree or there is a winner 
 		if(state.getLevel() == 0 || winner != -1) return utility(state);
@@ -74,8 +85,6 @@ public class NewAI extends CKPlayer {
 			}
 			alpha = Math.max(alpha, state.value);
 		}
-		
-		//System.out.println("Leaving Max");
 		return state.value;
 	}
 	
@@ -107,21 +116,19 @@ public class NewAI extends CKPlayer {
 	}
 	
 	private long utility(Node state) {
-		//System.out.println("Inside Utility");
-		// TODO Auto-generated method stub
 		evaluations++;
 		long total = evaluateHorizontaly(state.getBoard(), player);
 		total += evaluateVertically(state.getBoard(), player);
+		total += evaluateDLR2(state.getBoard(), player);
+		total += evaluateDLR(state.getBoard(), player);
 		state.setValue(total);
-		//total += evaluateVertically(state.getBoard(), player);
-		//System.out.println("Leaving Utility");
 		return total;
 		
 	}
 	
+	//evaluates the board Horizontally
 	private long evaluateHorizontaly(BoardModel state, byte player){
-		//System.out.println("Inside Eval Horozontally");
-		//evaluates the board Horizontally
+	
 		//total score that we are going to add too and return
 		int totalScore = 0;
 		//edge to stop counting and stay inbounds of the board
@@ -131,7 +138,7 @@ public class NewAI extends CKPlayer {
 		for(int y = 0; y < state.height ; y++){
 			//loop in the x direction till the limit
 			for(int x = 0; x < xStop; x++){
-				//count the number of 1, and 2s in the block of connectn
+				//count the number of 1, and 2s in the block 
 				int numberOfOnes = 0;
 				int numberOfTwos = 0;
 				boolean evaluate = true;
@@ -156,41 +163,21 @@ public class NewAI extends CKPlayer {
 				}
 				
 				if(evaluate){
-					if(numberOfOnes == 0 && numberOfTwos != 0 || numberOfTwos == 0 && numberOfOnes != 0){
-						//if its a n in a row, max points 
-						long  score = 0;
-						int count = Math.abs(numberOfOnes - numberOfTwos);
-						
-						//if there is a win, return max total score
-						if(count == state.kLength){
-							if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
-								return maxScore;
-							
-							else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
-								return minScore;
-						}
-						score = (int)Math.pow(10, count);
-						
-						if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
-							totalScore += score;
-						
-						else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
-							totalScore -= score;
-				
-					}
+					//evaluate
+					totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
 				}
 			}
 		}
-		//System.out.println("Leaving Horizonal");
+		
 		return totalScore;
 	}
-
+	//evaluate 
+	
 	public long evaluateVertically(BoardModel state, byte player){
 		//total score that we are going to add too and return
 		int totalScore = 0;
 		//edge to stop counting and stay inbounds of the board
 		int yStop = state.height - state.kLength + 1;
-		
 		//loop though all of the vertical levels
 		for(int x = 0; x < state.width ; x++){
 			//loop in the y direction till the limit
@@ -220,38 +207,107 @@ public class NewAI extends CKPlayer {
 				}
 				
 				if(evaluate){
-					if(numberOfOnes == 0 && numberOfTwos != 0 || numberOfTwos == 0 && numberOfOnes != 0){
-						//if its a n in a row, max points 
-						long  score = 0;
-						int count = Math.abs(numberOfOnes - numberOfTwos);
-						
-						
-						//if there is a win, return max total score
-						if(count == state.kLength){
-							if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
-								return maxScore;
-							
-							else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
-								return minScore;
-						}
-						score = (int)Math.pow(10, count);
-						
-						if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos){
-							totalScore += score;
-						}
-						
-						else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
-							totalScore -= score;
-						
-				
-					}
+					totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
 				}
 			}
 		}
 		return totalScore;
 	}
+	//evaluates a block 
 	
+	private long evaluateDLR(BoardModel state, byte player){
+		//track the total
+		int totalScore = 0;
+		//interate from klength to then end of board 
+		for(int x = kLength-1 ; x < boardWidth; x++){
+			int currentx = x;
+			int currenty = 0;
+			int numberOfOnes = 0;
+			int numberOfTwos = 0;
+			//count diagonally if there is space 
+			while(currentx > kLength && currenty + kLength < boardHeight){
+				//loop through the klength block 
+				for(int blockNumber = 0; blockNumber < kLength; blockNumber++){
+					//get the tile at the block
+					byte tile = state.getSpace(currentx-blockNumber, currenty + blockNumber);
+					if(tile == 1)
+						numberOfOnes++;
+					if(tile == 2)
+						numberOfTwos++;
+				}
+				//add score to total score 
+				totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
+				//reset the total score
+				numberOfOnes = 0;
+				numberOfTwos = 0;
+				currentx--;
+				currenty++;
+			}
+		}
+		return totalScore;
+	}
+	
+	private long evaluateDLR2(BoardModel state, byte player){
+		//track the total
+		int totalScore = 0;
+		//iterate along the right from 1 to y+klength  <=  boardheight 
+		for(int y = 1 ; y+ kLength <= boardHeight; y++){
+			int currentx = boardWidth-1;
+			int currenty = y;
+			int numberOfOnes = 0;
+			int numberOfTwos = 0;
+			//count diagonally 
+			while(currentx > kLength && currenty + kLength <= boardHeight){
+				//loop through the klength block 
+				for(int blockNumber = 0; blockNumber < kLength; blockNumber++){
+					//get the tile at the block
+					byte tile = state.getSpace(currentx-blockNumber, currenty + blockNumber);
+					if(tile == 1)
+						numberOfOnes++;
+					if(tile == 2)
+						numberOfTwos++;
+				}
+				//add score to total score 
+				totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
+				//reset the total score
+				numberOfOnes = 0;
+				numberOfTwos = 0;
+				currentx--;
+				currenty++;
+			}
+		}
+		return totalScore;
+	}
+
+	private long evaluateBlock(int numberOfOnes, int numberOfTwos){
+		//total score
+		long totalScore = 0;
+		//only evaluate if the block is empty 
+		if(numberOfOnes == 0 && numberOfTwos !=  0 || numberOfOnes != 0 && numberOfTwos == 0){
+			int count = Math.abs(numberOfOnes - numberOfTwos);
+				
+			//if there is a win, return max total score
+			if(count == kLength){
+				if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
+					return maxScore;
+					
+				else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
+					return minScore;
+			}
+			
+			int score = (int)Math.pow(10, count);
+				
+			if(player == 1 && numberOfOnes > numberOfTwos || player == 2 && numberOfOnes < numberOfTwos)
+				totalScore += score;
+				
+			else if(player == 1 && numberOfOnes < numberOfTwos || player == 2 && numberOfOnes > numberOfTwos)
+				totalScore -= score;
+		}
+		
+		return totalScore;
+	}
 	//Get all possible moves 
+	
 	private ArrayList<Point> getPossibleMoves(BoardModel state){
 		
 		ArrayList<Integer> searchIndex = getMoveOrder();
@@ -289,11 +345,10 @@ public class NewAI extends CKPlayer {
 		
 		return possibleMoves;
 	}
-
 	//returns a list with the move ordering
+	
 	private ArrayList<Integer> getMoveOrder(){
-		ArrayList<Integer> moveOrder = new ArrayList<Integer>();
-		
+		ArrayList<Integer> moveOrder = new ArrayList<Integer>();	
 		//if even 
 		if(boardWidth%2 == 0){
 			int start = (boardWidth+1)/2;
@@ -320,14 +375,16 @@ public class NewAI extends CKPlayer {
 
 	}
 	
+	
 	private int staggerIncrement(int i){
 		int newI = Math.abs(i) + 1;
 		if(newI % 2 == 0)
 			return newI;
 		return newI * -1;
 	}
+	
+    
 	private Byte Player(BoardModel clonedState) {
-		//System.out.println("Inside Player");
 		Byte nextPlayer;
 		Byte lastPlayer = clonedState.getSpace(clonedState.getLastMove());
 		//if last player is 1 then currentPlate is 2 
@@ -340,6 +397,7 @@ public class NewAI extends CKPlayer {
 		return nextPlayer;
 	}
 
+	
 	private class Node{
 		//represents a node in the game
 		
@@ -377,7 +435,6 @@ public class NewAI extends CKPlayer {
 			//set current Level
 			level = levelNumber;
 		}
-
 
 
 		public ArrayList<Node> getChildren() {
