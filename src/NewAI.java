@@ -9,8 +9,7 @@ import java.util.ArrayList;
 
 
 
-/*evaluation function
- */
+/*test limits of eval functions*/
 
 public class NewAI extends CKPlayer {
 	
@@ -18,8 +17,8 @@ public class NewAI extends CKPlayer {
 	private int boardHeight;
 	private int boardWidth;
 	private int kLength;
-	private static long minScore = -1000000000;
-	private static long maxScore = 1000000000;
+	private static long maxScore =  Long.MAX_VALUE;
+	private static long minScore =  Long.MIN_VALUE;
 	private int evaluations = 0;
 	private Point lastMove;
 	private boolean gravityOn;
@@ -47,14 +46,16 @@ public class NewAI extends CKPlayer {
 		if(lastMove == null){
 			//place peace in the middle of board 
 			lastMove = new Point(boardWidth/2,0);
+			if(!gravityOn)
+				lastMove = new Point((boardWidth/2),(boardHeight/2));
+			
 			return lastMove;
 		}
-		
 		if(gravityOn){
 			return AlphaBetaSearch(new Node(state, 7));
 		}
 		
-		return AlphaBetaSearch(new Node(state, 2));
+		return AlphaBetaSearch(new Node(state, 4));
 	}
 	
 	private Point AlphaBetaSearch(Node state){
@@ -119,8 +120,8 @@ public class NewAI extends CKPlayer {
 		evaluations++;
 		long total = evaluateHorizontaly(state.getBoard(), player);
 		total += evaluateVertically(state.getBoard(), player);
-		total += evaluateDLR2(state.getBoard(), player);
-		total += evaluateDLR(state.getBoard(), player);
+		total += evaluateDL(state.getBoard(), player);
+		total += evaluateDR(state.getBoard(), player);
 		state.setValue(total);
 		return total;
 		
@@ -128,47 +129,26 @@ public class NewAI extends CKPlayer {
 	
 	//evaluates the board Horizontally
 	private long evaluateHorizontaly(BoardModel state, byte player){
-	
 		//total score that we are going to add too and return
 		int totalScore = 0;
-		//edge to stop counting and stay inbounds of the board
-		int xStop = state.width - state.kLength + 1;
-		
 		//loop though all of the horizontal levels
-		for(int y = 0; y < state.height ; y++){
-			//loop in the x direction till the limit
-			for(int x = 0; x < xStop; x++){
+		for(int y = 0; y < boardHeight; y++){
+			for(int x = 0; x <= boardWidth - kLength; x++){
+			//loop in the y direction till the limit
+	
 				//count the number of 1, and 2s in the block 
 				int numberOfOnes = 0;
 				int numberOfTwos = 0;
-				boolean evaluate = true;
-				for(int slot = x; slot < (x + state.kLength) ; slot++){
-					//dont count empty spaces
-					if(state.getSpace(slot, y) == 0)
-						continue;
-					if(state.getSpace(slot,y) == 1){
-						if(numberOfTwos > 1){
-							evaluate = false;
-							break;
-						}
+				for(int blockNumber = 0; blockNumber < kLength; blockNumber++){
+					byte tile = state.getSpace(blockNumber+x,y);
+					if(tile == 1)
 						numberOfOnes++;
-					}
-					if(state.getSpace(slot,y) == 2){
-						if(numberOfOnes > 0){
-							evaluate = false;
-							break;
-						}
+					if(tile == 2)
 						numberOfTwos++;
-					}
 				}
-				
-				if(evaluate){
-					//evaluate
-					totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
-				}
+				totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
 			}
 		}
-		
 		return totalScore;
 	}
 	//evaluate 
@@ -176,109 +156,100 @@ public class NewAI extends CKPlayer {
 	public long evaluateVertically(BoardModel state, byte player){
 		//total score that we are going to add too and return
 		int totalScore = 0;
-		//edge to stop counting and stay inbounds of the board
-		int yStop = state.height - state.kLength + 1;
 		//loop though all of the vertical levels
-		for(int x = 0; x < state.width ; x++){
+		for(int x = 0; x < boardWidth ; x++){
 			//loop in the y direction till the limit
-			for(int y = 0; y < yStop; y++){
-				//count the number of 1, and 2s in the block of connectn
+			for(int y = 0; y <= boardHeight - kLength; y++){
+				//count the number of 1, and 2s in the block of 
 				int numberOfOnes = 0;
 				int numberOfTwos = 0;
-				boolean evaluate = true;
-				for(int slot = y; slot < (y + state.kLength) ; slot++){
-					//dont count empty spaces
-					if(state.getSpace(x, slot) == 0)
-						continue;
-					if(state.getSpace(x,slot) == 1){
-						if(numberOfTwos > 1){
-							evaluate = false;
-							break;
-						}
+				int currentx = x;
+				int currenty = y;				
+				//loop though a block the size of k 
+				for(int blockNumber = 0; blockNumber < kLength ; blockNumber++){
+					byte tile = state.getSpace(currentx,currenty+blockNumber);
+					int ny = currenty+blockNumber;
+					//System.out.println(x + "," + ny);
+					if(tile == 1)
 						numberOfOnes++;
-					}
-					if(state.getSpace(x,slot) == 2){
-						if(numberOfOnes > 0){
-							evaluate = false;
-							break;
-						}
+					if(tile == 2)
 						numberOfTwos++;
-					}
 				}
-				
-				if(evaluate){
-					totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
-				}
+				//System.out.println("------------");
+			
+				totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
 			}
+			//System.out.println("**************");
 		}
+		//System.out.println("5555555555555555555555555555");
 		return totalScore;
 	}
 	//evaluates a block 
 	
-	private long evaluateDLR(BoardModel state, byte player){
+	private long evaluateDR(BoardModel state, byte player){
+		//track to total 
+		long total = 0;
+		//iterate from one side to right side - klength 
+		for(int x = 0; x <= boardWidth-kLength ; x++){
+			for(int y = 0; y <= boardHeight - kLength; y++){
+				//track our current poistion and the number of 1's and 2's in a block 
+				int currentx = x;
+				int currenty = y;
+				int numberOfOnes = 0;
+				int numberOfTwos = 0;
+				
+				//loop though a block the size of k 
+				for(int blockNumber = 0; blockNumber < kLength ; blockNumber++){
+					byte tile = state.getSpace(currentx+blockNumber, currenty+blockNumber);
+				//	int i = currentx+blockNumber;
+					//int j = currenty + blockNumber;
+					//System.out.println(i + "," +j);
+					if(tile == 1)
+						numberOfOnes++;
+					if(tile == 2)
+						numberOfTwos++;
+				}
+				//System.out.println("----------------");
+				//add to total and shit up and over 
+				total += evaluateBlock(numberOfOnes, numberOfTwos);
+			}
+			//System.out.println("****************");
+		}
+		//System.out.println("66666666666666666666");
+		return total;
+	}
+	
+	private long evaluateDL(BoardModel state, byte player){
 		//track the total
 		int totalScore = 0;
 		//interate from klength to then end of board 
 		for(int x = kLength-1 ; x < boardWidth; x++){
-			int currentx = x;
-			int currenty = 0;
-			int numberOfOnes = 0;
-			int numberOfTwos = 0;
-			//count diagonally if there is space 
-			while(currentx > kLength && currenty + kLength < boardHeight){
-				//loop through the klength block 
+			for(int y = 0; y <= boardHeight - kLength ; y++){
+				int currentx = x;
+				int currenty = y;
+				int numberOfOnes = 0;
+				int numberOfTwos = 0;
+			
 				for(int blockNumber = 0; blockNumber < kLength; blockNumber++){
 					//get the tile at the block
 					byte tile = state.getSpace(currentx-blockNumber, currenty + blockNumber);
+					//int i = currentx-blockNumber;
+					//int j = currenty + blockNumber;
+					//System.out.println(i + "," +j);
 					if(tile == 1)
 						numberOfOnes++;
 					if(tile == 2)
 						numberOfTwos++;
 				}
+				//System.out.println("---------------------");
 				//add score to total score 
 				totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
-				//reset the total score
-				numberOfOnes = 0;
-				numberOfTwos = 0;
-				currentx--;
-				currenty++;
 			}
+			//System.out.println("****************");
 		}
 		return totalScore;
 	}
 	
-	private long evaluateDLR2(BoardModel state, byte player){
-		//track the total
-		int totalScore = 0;
-		//iterate along the right from 1 to y+klength  <=  boardheight 
-		for(int y = 1 ; y+ kLength <= boardHeight; y++){
-			int currentx = boardWidth-1;
-			int currenty = y;
-			int numberOfOnes = 0;
-			int numberOfTwos = 0;
-			//count diagonally 
-			while(currentx > kLength && currenty + kLength <= boardHeight){
-				//loop through the klength block 
-				for(int blockNumber = 0; blockNumber < kLength; blockNumber++){
-					//get the tile at the block
-					byte tile = state.getSpace(currentx-blockNumber, currenty + blockNumber);
-					if(tile == 1)
-						numberOfOnes++;
-					if(tile == 2)
-						numberOfTwos++;
-				}
-				//add score to total score 
-				totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
-				//reset the total score
-				numberOfOnes = 0;
-				numberOfTwos = 0;
-				currentx--;
-				currenty++;
-			}
-		}
-		return totalScore;
-	}
-
 	private long evaluateBlock(int numberOfOnes, int numberOfTwos){
 		//total score
 		long totalScore = 0;
@@ -307,6 +278,7 @@ public class NewAI extends CKPlayer {
 		return totalScore;
 	}
 	//Get all possible moves 
+	
 	
 	private ArrayList<Point> getPossibleMoves(BoardModel state){
 		
@@ -347,6 +319,7 @@ public class NewAI extends CKPlayer {
 	}
 	//returns a list with the move ordering
 	
+	
 	private ArrayList<Integer> getMoveOrder(){
 		ArrayList<Integer> moveOrder = new ArrayList<Integer>();	
 		//if even 
@@ -376,6 +349,7 @@ public class NewAI extends CKPlayer {
 	}
 	
 	
+	
 	private int staggerIncrement(int i){
 		int newI = Math.abs(i) + 1;
 		if(newI % 2 == 0)
@@ -384,6 +358,7 @@ public class NewAI extends CKPlayer {
 	}
 	
     
+	
 	private Byte Player(BoardModel clonedState) {
 		Byte nextPlayer;
 		Byte lastPlayer = clonedState.getSpace(clonedState.getLastMove());
@@ -397,6 +372,7 @@ public class NewAI extends CKPlayer {
 		return nextPlayer;
 	}
 
+	
 	
 	private class Node{
 		//represents a node in the game
