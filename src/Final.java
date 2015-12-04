@@ -6,7 +6,7 @@ import java.awt.Point;
 import java.util.ArrayList;
 
 
-public class NewAI extends CKPlayer {
+public class Final extends CKPlayer {
 	
 	//Board information
 	private int boardHeight;
@@ -14,11 +14,11 @@ public class NewAI extends CKPlayer {
 	private int kLength;
 	private static long maxScore =  Long.MAX_VALUE;
 	private static long minScore =  Long.MIN_VALUE;
-	private int evaluations = 0;
+//	private int evaluations = 0;
 	private Point lastMove;
 	private boolean gravityOn;
 	
-	public NewAI(byte player, BoardModel state) {
+	public Final(byte player, BoardModel state) {
 		//Constructor 
 		super(player, state);
 		boardHeight = state.getHeight();
@@ -27,8 +27,9 @@ public class NewAI extends CKPlayer {
 		gravityOn = state.gravity;
 		teamName = "SoloKasean";
 	}
-	
 	@Override
+
+	
 	public Point getMove(BoardModel state, int deadline) {
 		return getMove(state);
 	}
@@ -46,10 +47,10 @@ public class NewAI extends CKPlayer {
 			return lastMove;
 		}
 		if(gravityOn){
-			return AlphaBetaSearch(new Node(state, 7));
+			return AlphaBetaSearch(new Node(state, 4));
 		}
 		
-		return AlphaBetaSearch(new Node(state, 4));
+		return AlphaBetaSearch(new Node(state, 7));
 	}
 	
 	private Point AlphaBetaSearch(Node state){
@@ -106,7 +107,7 @@ public class NewAI extends CKPlayer {
 	}
 	
 	private long utility(Node state) {
-		evaluations++;
+	//	evaluations++;
 		long total = evaluateHorizontaly(state.getBoard(), player);
 		total += evaluateVertically(state.getBoard(), player);
 		total += evaluateDL(state.getBoard(), player);
@@ -181,14 +182,20 @@ public class NewAI extends CKPlayer {
 				//loop though a block the size of k 
 				for(int blockNumber = 0; blockNumber < kLength ; blockNumber++){
 					byte tile = state.getSpace(currentx+blockNumber, currenty+blockNumber);
+					//int cx = currentx+blockNumber;
+				//	int cy = currenty+blockNumber;
+				//	System.out.println(cx + "," + cy);
 					if(tile == 1)
 						numberOfOnes++;
 					if(tile == 2)
 						numberOfTwos++;
 				}
+			//	System.out.println("---------------------------");
 				total += evaluateBlock(numberOfOnes, numberOfTwos);
 			}
+			//System.out.println("******************");
 		}
+		//System.out.println("#####################");
 		return total;
 	}
 	
@@ -205,15 +212,21 @@ public class NewAI extends CKPlayer {
 				for(int blockNumber = 0; blockNumber < kLength; blockNumber++){
 					//get the tile at the block
 					byte tile = state.getSpace(currentx-blockNumber, currenty + blockNumber);
+					//int cx = currentx-blockNumber;
+					//int cy = currenty+blockNumber;
+					//System.out.println(cx + "," + cy);
 					if(tile == 1)
 						numberOfOnes++;
 					if(tile == 2)
 						numberOfTwos++;
 				}
+				//System.out.println("---------------------------");
 				//add score to total score 
 				totalScore += evaluateBlock(numberOfOnes, numberOfTwos);
 			}
+		//	System.out.println("******************");
 		}
+	//	System.out.println("#####################");
 		return totalScore;
 	}
 	
@@ -391,19 +404,3 @@ public class NewAI extends CKPlayer {
 	}
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
